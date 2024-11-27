@@ -34,11 +34,14 @@ import com.google.android.material.bottomsheet.BottomSheetDialogFragment;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.FieldValue;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.Timestamp;
 
 import java.lang.reflect.Field;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 
@@ -92,14 +95,16 @@ public class ThemNhiemVu extends BottomSheetDialogFragment {
         final Bundle bundle = getArguments();
         if (bundle != null) {
             isUpdate = true;
-            String task = bundle.getString("task");
-            id = bundle.getString("id");
-            capNhatNgay = bundle.getString("due");
+            String task = bundle.getString("task", "");
+            id = bundle.getString("id", "");
+            capNhatNgay = bundle.getString("due", "");
 
-            txtSua.setText(task);
-            datNgayKetThuc.setText(capNhatNgay);
+            if (txtSua != null && datNgayKetThuc != null) {
+                txtSua.setText(task);
+                datNgayKetThuc.setText(capNhatNgay);
+            }
 
-            if (task.length() > 0){
+            if (task != null && task.length() > 0) {
                 btnSave.setEnabled(false);
                 btnSave.setBackgroundColor(Color.GRAY);
             }
@@ -131,18 +136,18 @@ public class ThemNhiemVu extends BottomSheetDialogFragment {
             @Override
             public void onClick(View view) {
                 Calendar calendar = Calendar.getInstance();
-
                 int MONTH = calendar.get(Calendar.MONTH);
-                int YEAR = calendar.get(calendar.YEAR);
-                int DAY = calendar.get(calendar.DATE);
+                int YEAR = calendar.get(Calendar.YEAR);
+                int DAY = calendar.get(Calendar.DAY_OF_MONTH);
 
                 DatePickerDialog datePickerDialog = new DatePickerDialog(context, new DatePickerDialog.OnDateSetListener() {
                     @Override
-                    public void onDateSet(DatePicker view, int year, int month, int dayOfMonth) {
-                        month = month + 1;
-                        datNgayKetThuc.setText(dayOfMonth + "/" + month + "/" + year );
-                        ngayKetThuc = dayOfMonth + "/" + month + "/" + year;
+                    public void onDateSet(DatePicker view, int year, int monthOfYear, int dayOfMonth) {
+                        monthOfYear = monthOfYear + 1;
 
+                        String formattedDate = String.format("%02d/%02d/%d", dayOfMonth, monthOfYear, year);
+                        datNgayKetThuc.setText(formattedDate);
+                        ngayKetThuc = formattedDate;
                     }
                 }, YEAR, MONTH, DAY);
                 datePickerDialog.show();
@@ -154,20 +159,36 @@ public class ThemNhiemVu extends BottomSheetDialogFragment {
             public void onClick(View view) {
                 String nhiemVu = txtSua.getText().toString();
 
+                if (ngayKetThuc.isEmpty()) {
+                    Toast.makeText(context, "Vui lòng chọn ngày kết thúc", Toast.LENGTH_SHORT).show();
+                    return;
+                }
+
                 if (finalIsUpdate){
                     firestore.collection("task").document(id).update("task", nhiemVu, "due" , ngayKetThuc);
                     Toast.makeText(context, "Cập nhật nhiệm vụ", Toast.LENGTH_SHORT).show();
                 }
                 else {
                     if (nhiemVu.isEmpty()) {
-                        Toast.makeText(context, "Nhiệm vụ trống không được phép sửa", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(context, "Bạn không thể tạo nhiệm vụ trống, hãy nhập đầy đủ thông tin", Toast.LENGTH_SHORT).show();
                     } else {
                         Map<String, Object> taskMap = new HashMap<>();
 
-                        taskMap.put("task", nhiemVu);
-                        taskMap.put("due", ngayKetThuc);
-                        taskMap.put("status", 0);
-                        taskMap.put("time", FieldValue.serverTimestamp());
+                        taskMap.put("Nhiệm vụ", nhiemVu);
+                        taskMap.put("Thời gian kết thúc", ngayKetThuc);
+                        taskMap.put("Tình trạng", 0);
+                        taskMap.put("Thời gian tạo", FieldValue.serverTimestamp());
+
+//                        Timestamp timestamp = (Timestamp) taskMap.get("Thời gian tạo");
+//                        if (timestamp != null) {
+//                            Calendar calendar = Calendar.getInstance();
+//                            calendar.setTimeInMillis(timestamp.getSeconds() * 1000);
+//
+//                            SimpleDateFormat simpleDateFormat = new SimpleDateFormat("EEE, dd/MM/yyyy, HH:mm:ss", Locale.getDefault());
+//                            String formattedDate = simpleDateFormat.format(calendar.getTime());
+//
+//                            System.out.println("Thời gian tạo" + formattedDate);
+//                        }
 
                         firestore.collection("task").add(taskMap).addOnCompleteListener(new OnCompleteListener<DocumentReference>() {
                             @Override

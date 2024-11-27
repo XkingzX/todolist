@@ -14,7 +14,9 @@ public class Loading extends AppCompatActivity {
         setContentView(R.layout.activity_loading);
 
         ActionBar actionBar = getSupportActionBar();
-        actionBar.hide();
+        if (actionBar != null) {
+            actionBar.hide();
+        }
         Handler handler = new Handler();
         handler.postDelayed(new Runnable() {
             @Override

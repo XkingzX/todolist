@@ -6,10 +6,10 @@ import com.google.firebase.firestore.Exclude;
 
 public class TaskId {
     @Exclude
-    public String TaskId;
+    public String TaskId; //Firestore Document ID
 
     public <T extends TaskId> T withId(@NonNull final String id){
         this.TaskId = id;
-        return (T) this;
+        return (T) this; //Trả về đối tượng kiểu "TaskId" hoặc lớp con của nó
     }
 }

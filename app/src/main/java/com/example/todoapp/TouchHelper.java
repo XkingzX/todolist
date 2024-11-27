@@ -30,10 +30,9 @@ public class TouchHelper  extends ItemTouchHelper.SimpleCallback {
     @Override
     public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
         final int position = viewHolder.getAdapterPosition();
-        if (direction == ItemTouchHelper.RIGHT)
-        {
-            AlertDialog.Builder builder = new AlertDialog.Builder(adapter.getContext());
-            builder.setMessage("Bạn chắc chắn muốn xóa không?")
+        if (direction == ItemTouchHelper.RIGHT) {
+            AlertDialog.Builder thongBao = new AlertDialog.Builder(adapter.getContext());
+            thongBao.setMessage("Bạn chắc chắn muốn xóa không?")
                     .setTitle("Delete Task!")
                     .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                         @Override
@@ -46,7 +45,11 @@ public class TouchHelper  extends ItemTouchHelper.SimpleCallback {
                             adapter.notifyItemChanged(position);
                         }
                     });
-            builder.show();
+            AlertDialog dialog = thongBao.create();
+            dialog.show();
+        }else
+            adapter.editTask(position);
+        {
         }
     }
 

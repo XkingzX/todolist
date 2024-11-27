@@ -1,8 +1,10 @@
 package com.example.todoapp;
 
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
@@ -33,13 +35,15 @@ import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.google.firestore.v1.Value;
 
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-public class MainActivity extends AppCompatActivity implements OnDiaLogCloseListner{
+public class MainActivity extends AppCompatActivity implements OnDiaLogCloseListner {
 
     private RecyclerView recyclerView;
     private FloatingActionButton mFab;
@@ -52,6 +56,7 @@ public class MainActivity extends AppCompatActivity implements OnDiaLogCloseList
     private static final int PICK_IMAGE_REQUEST = 1;
     private ImageView imageView;
     private Uri imageUri;
+    private String imageFileName = "my_image_" + System.currentTimeMillis() + ".jpg";
 
 
     @Override
@@ -71,7 +76,7 @@ public class MainActivity extends AppCompatActivity implements OnDiaLogCloseList
         mFab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                ThemNhiemVu.newInstance().show(getSupportFragmentManager() , ThemNhiemVu.TAG);
+                ThemNhiemVu.newInstance().show(getSupportFragmentManager(), ThemNhiemVu.TAG);
             }
         });
         mList = new ArrayList<>();
@@ -86,27 +91,31 @@ public class MainActivity extends AppCompatActivity implements OnDiaLogCloseList
         imageView = findViewById(R.id.imageView);
         chonHinh();
     }
-    private void showData(){
+
+    private void showData() {
         query = firestore.collection("task").orderBy("time", Query.Direction.DESCENDING);
-                listenerRegistration = query.addSnapshotListener(new EventListener<QuerySnapshot>() {
+        listenerRegistration = query.addSnapshotListener(new EventListener<QuerySnapshot>() {
             @Override
             public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
-                for (DocumentChange documentChange: value.getDocumentChanges()){
-                    if(documentChange.getType() == DocumentChange.Type.ADDED){
+                if (error != null) {
+                    return;
+                }
+
+                for (DocumentChange documentChange : value.getDocumentChanges()) {
+                    if (documentChange.getType() == DocumentChange.Type.ADDED) {
                         String id = documentChange.getDocument().getId();
                         ToDoModel toDoModel = documentChange.getDocument().toObject(ToDoModel.class).withId(id);
 
                         mList.add(toDoModel);
-                        adapter.notifyDataSetChanged();
+                        adapter.notifyItemInserted(mList.size() - 1);
                     }
                 }
-                listenerRegistration.remove();
             }
         });
     }
 
-    private void chonHinh()
-    {
+
+    private void chonHinh() {
         Button button = findViewById(R.id.btnChonHinh);
         button.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -116,8 +125,7 @@ public class MainActivity extends AppCompatActivity implements OnDiaLogCloseList
         });
     }
 
-    private void moThuMucHinh()
-    {
+    private void moThuMucHinh() {
         Intent intent = new Intent();
         intent.setType("image/*");
         intent.setAction(Intent.ACTION_GET_CONTENT);
@@ -129,15 +137,54 @@ public class MainActivity extends AppCompatActivity implements OnDiaLogCloseList
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == PICK_IMAGE_REQUEST && resultCode == RESULT_OK && data != null && data.getData() != null) {
             imageUri = data.getData();
+
             try {
-                // Chuyển URI thành Bitmap và đặt vào ImageView
                 Bitmap bitmap = MediaStore.Images.Media.getBitmap(getContentResolver(), imageUri);
                 imageView.setImageBitmap(bitmap);
+
+                luuHinhAnhVaoMay(bitmap);
             } catch (IOException e) {
                 e.printStackTrace();
                 Toast.makeText(this, "Không thể tải hình ảnh", Toast.LENGTH_SHORT).show();
             }
         }
+    }
+
+    private void luuHinhAnhVaoMay(Bitmap bitmap) {
+        try {
+            FileOutputStream fos = openFileOutput("imageFile", Context.MODE_PRIVATE);
+            bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
+            fos.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Không thể lưu hình ảnh", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void taiHinhAnhLen() {
+        try {
+            FileInputStream fis = openFileInput("imageFile");
+            Bitmap bitmap = BitmapFactory.decodeStream(fis);
+            imageView.setImageBitmap(bitmap);
+            fis.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            Toast.makeText(this, "Không có hình ảnh để tải", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+//    @Override
+//    protected void onResume() {
+//        super.onResume();
+//        Bitmap savedBitmap = taiHinhAnhLen();
+//        if (savedBitmap != null) {
+//            imageView.setImageBitmap(savedBitmap);
+//        }
+//    }
+    @Override
+    protected void onStart() {
+        super.onStart();
+        taiHinhAnhLen();
     }
 
     @Override
